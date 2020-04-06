@@ -1,44 +1,20 @@
 const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-admin.initializeApp();
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
- exports.helloWorld = functions.https.onRequest((request, response) => {
- response.send("Hello prod!");
-});
-exports.getDsk = functions.https.onRequest((req, res) =>{
-    admin.firestore().collection('dsk').get()
-        .then(data=>{
-            let dsk =[];
-           data.forEach(doc => {
-               dsk.push(doc.data());
 
-           });
-           return res.json(dsk);
-        })
-        .catch(err => console.error(err))
-});
+const app = require('express')();
 
-exports.createDsk = functions.https.onRequest((req, res) =>{
-    if(req.method!== 'POST'){
-        return res.status(400).json({error : 'Erreur requete'});
-    }
-    const newDsk ={
-        body: req.body.body,
-        userHandle: req.body.userHandle,
-        createAt: admin.firestore.Timestamp.fromDate(new Date())
-    };
+const  FBAuth = require('./util/fbAuth');
 
-    admin
-        .firestore()
-        .collection('dsk')
-        .add(newDsk)
-        .then((doc) =>{
-            res.json({ message: `document ${doc.id} creer avec succès` });
-        })
-        .catch((err) =>{
-        res.status(500).json({ error: 'erreur connexion '});
-        console.error(err);
-    });
-});
+const {getAllDsk, postOneDsks} = require('./handlers/dsk');
+const {signup, login} = require('./handlers/users');
+
+
+
+//dsk route
+app.get('/dsk', getAllDsk);
+app.post('/dsks', FBAuth, postOneDsks);
+//users routes
+app.post('/signup', signup);
+app.post('/login',login);
+
+exports.api = functions.region('europe-west1').https.onRequest(app);
+
